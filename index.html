@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>To-Do List</title>
+    <style>
+      /* Basic CSS Styling */
+      body {
+        font-family: sans-serif;
+      }
+      .container {
+        width: 400px;
+        margin: 0 auto;
+        padding: 20px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+      }
+      input[type="text"] {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 10px;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+      }
+      button {
+        padding: 10px 20px;
+        background-color: #4caf50;
+        color: white;
+        border: none;
+        border-radius: 3px;
+        cursor: pointer;
+      }
+      ul {
+        list-style: none;
+        padding: 0;
+      }
+      li {
+        margin-bottom: 5px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>To-Do List</h1>
+      <input type="text" id="newTask" placeholder="Add new task" />
+      <button onclick="addTask()">Add Task</button>
+
+      <ul id="taskList"></ul>
+    </div>
+
+    <script>
+      async function addTask() {
+        const taskInput = document.getElementById("newTask");
+        const taskText = taskInput.value;
+
+        if (taskText === "") {
+          alert("Please enter a task.");
+          return;
+        }
+
+        try {
+          const response = await fetch("http://localhost:3000/tasks", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ task: taskText }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            displayTasks();
+            taskInput.value = ""; // Clear input field
+          } else {
+            alert("Error adding task.");
+          }
+        } catch (error) {
+          console.error("Error:", error);
+          alert("An error occurred.");
+        }
+      }
+
+      async function displayTasks() {
+        try {
+          const response = await fetch("http://localhost:3000/tasks");
+          const tasks = await response.json();
+
+          const taskList = document.getElementById("taskList");
+          taskList.innerHTML = "";
+
+          tasks.forEach((task) => {
+            const listItem = document.createElement("li");
+            listItem.textContent = task.task;
+            listItem.setAttribute("data-id", task.id);
+
+            const completeButton = document.createElement("button");
+            completeButton.textContent = task.completed
+              ? "Completed"
+              : "Complete";
+            completeButton.style.backgroundColor = task.completed
+              ? "green"
+              : "red"; // Change color
+
+            completeButton.onclick = () => completeTask(task.id);
+
+            const deleteButton = document.createElement("button");
+            deleteButton.textContent = "Delete";
+            deleteButton.onclick = () => deleteTask(task.id);
+
+            listItem.appendChild(completeButton);
+            listItem.appendChild(deleteButton);
+
+            taskList.appendChild(listItem);
+          });
+        } catch (error) {
+          console.error("Error:", error);
+          alert("An error occurred while fetching tasks.");
+        }
+      }
+
+      async function completeTask(taskId) {
+        try {
+          const response = await fetch(
+            `http://localhost:3000/tasks/${taskId}`,
+            {
+              method: "PATCH",
+            }
+          );
+
+          if (response.ok) {
+            displayTasks();
+          } else {
+            alert("Error completing task.");
+          }
+        } catch (error) {
+          console.error("Error:", error);
+          alert("An error occurred.");
+        }
+      }
+
+      async function deleteTask(taskId) {
+        try {
+          const response = await fetch(
+            `http://localhost:3000/tasks/${taskId}`,
+            {
+              method: "DELETE",
+            }
+          );
+
+          if (response.ok) {
+            displayTasks();
+          } else {
+            alert("Error deleting task.");
+          }
+        } catch (error) {
+          console.error("Error:", error);
+          alert("An error occurred.");
+        }
+      }
+
+      // Initial fetch of tasks
+      displayTasks();
+    </script>
+  </body>
+</html>
